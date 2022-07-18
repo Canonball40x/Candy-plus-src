@@ -1,0 +1,9 @@
+{
+  "required": false,
+  "compatibilityLevel": "JAVA_8",
+  "package": "cc.candy.candymod.mixin.mixins",
+  "refmap": "mixins.candy.refmap.json",
+  "mixins": [
+    "MixinNetWork"
+  ]
+}

@@ -1,0 +1,78 @@
+package cc.candy.candymod.module.combat;
+
+import cc.candy.candymod.event.events.network.PacketEvent;
+import cc.candy.candymod.module.Module;
+import cc.candy.candymod.setting.Setting;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.projectile.EntityFishHook;
+import net.minecraft.network.play.server.SPacketEntityStatus;
+import net.minecraft.network.play.server.SPacketEntityVelocity;
+import net.minecraft.network.play.server.SPacketExplosion;
+
+import javax.annotation.Nullable;
+
+public class Velocity extends Module{
+    Setting<Integer> horizontal_vel = register(new Setting("Horizontal",0,100,0));
+    Setting<Integer> vertical_vel = register(new Setting("Vertical",0,100,0));
+    Setting<Boolean> explosions = register(new Setting("Explosions",true));
+    Setting<Boolean> bobbers = register(new Setting("Bobbers" , true));
+
+    public Velocity()
+    {
+        super("Velocity" , Categories.COMBAT , false , false);
+    }
+
+    @Override
+    public void onPacketReceive(PacketEvent.Receive event) {
+        if(mc.player == null) return;
+        if (event.packet instanceof SPacketEntityStatus && this.bobbers.getValue()) {
+            final SPacketEntityStatus packet = (SPacketEntityStatus) event.packet;
+            if (packet.getOpCode() == 31) {
+                @Nullable final Entity entity = packet.getEntity(mc.world);
+                if(entity != null) {
+                    if (entity instanceof EntityFishHook) {
+                        final EntityFishHook fishHook = (EntityFishHook) entity;
+                        if (fishHook.caughtEntity == mc.player) {
+                            event.cancel();
+                        }
+                    }
+                }
+            }
+        }
+        if (event.packet instanceof SPacketEntityVelocity) {
+            final SPacketEntityVelocity packet = (SPacketEntityVelocity) event.packet;
+            if (packet.getEntityID() == mc.player.getEntityId()) {
+                if (this.horizontal_vel.getValue() == 0 && this.vertical_vel.getValue() == 0) {
+                    event.cancel();
+                    return;
+                }
+
+                if (this.horizontal_vel.getValue() != 100) {
+                    packet.motionX = packet.motionX / 100 * this.horizontal_vel.getValue();
+                    packet.motionZ = packet.motionZ / 100 * this.horizontal_vel.getValue();
+                }
+
+                if (this.vertical_vel.getValue() != 100) {
+                    packet.motionY = packet.motionY / 100 * this.vertical_vel.getValue();
+                }
+            }
+        }
+        if (event.packet instanceof SPacketExplosion && this.explosions.getValue()) {
+            final SPacketExplosion packet = (SPacketExplosion) event.packet;
+
+            if (this.horizontal_vel.getValue() == 0 && this.vertical_vel.getValue() == 0) {
+                event.cancel();
+                return;
+            }
+
+            if (this.horizontal_vel.getValue() != 100) {
+                packet.motionX = packet.motionX / 100 * this.horizontal_vel.getValue();
+                packet.motionZ = packet.motionZ / 100 * this.horizontal_vel.getValue();
+            }
+
+            if (this.vertical_vel.getValue() != 100) {
+                packet.motionY = packet.motionY / 100 * this.vertical_vel.getValue();
+            }
+        }
+    }
+}
